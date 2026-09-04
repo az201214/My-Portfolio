@@ -22,10 +22,10 @@ type TechItem = {
 };
 
 const techData: TechItem[] = [
-  { name: "TypeScript", description: "Used for strongly typed application development across full-stack projects.", geometry: "box", color: "#3178c6", textureUrl: "/images/typescript.webp", scale: 0.9 },
-  { name: "React", description: "Used to build interactive web interfaces and component-based applications.", geometry: "icosahedron", color: "#61dafb", textureUrl: "/images/react2.webp", scale: 1.1 },
-  { name: "Next.js", description: "Used for server-rendered and statically generated web applications.", geometry: "sphere", color: "#000000", textureUrl: "/images/next2.webp", scale: 1.1 },
-  { name: "Node.js", description: "Used for scalable backend services and API development.", geometry: "dodecahedron", color: "#339933", textureUrl: "/images/node2.webp", scale: 0.9 },
+  { name: "TypeScript", description: "Used for strongly typed application development across full-stack projects.", geometry: "box", color: "#3178c6", textureUrl: `${import.meta.env.BASE_URL}images/typescript.webp`, scale: 0.9 },
+  { name: "React", description: "Used to build interactive web interfaces and component-based applications.", geometry: "icosahedron", color: "#61dafb", textureUrl: `${import.meta.env.BASE_URL}images/react2.webp`, scale: 1.1 },
+  { name: "Next.js", description: "Used for server-rendered and statically generated web applications.", geometry: "sphere", color: "#000000", textureUrl: `${import.meta.env.BASE_URL}images/next2.webp`, scale: 1.1 },
+  { name: "Node.js", description: "Used for scalable backend services and API development.", geometry: "dodecahedron", color: "#339933", textureUrl: `${import.meta.env.BASE_URL}images/node2.webp`, scale: 0.9 },
   { name: "Supabase", description: "Used for open-source Firebase alternative with PostgreSQL.", geometry: "box", color: "#3ecf8e", scale: 0.9 },
   { name: "Flutter", description: "Used to build cross-platform mobile applications.", geometry: "sphere", color: "#02569b", scale: 1.0 },
   { name: "Dart", description: "Used as the core language for Flutter app development.", geometry: "icosahedron", color: "#00b4ab", scale: 0.9 },
@@ -268,7 +268,7 @@ const TechStack = () => {
           ))}
         </Physics>
         <Environment
-          files="/models/char_enviorment.hdr"
+          files={`${import.meta.env.BASE_URL}models/char_enviorment.hdr`}
           environmentIntensity={0.5}
           environmentRotation={[0, 4, 2]}
         />

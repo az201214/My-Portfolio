@@ -8,14 +8,14 @@ const projects = [
     title: "NexusInsight CRM",
     category: "Built by Ali Zain",
     tools: "TypeScript, Next.js, Supabase, B2B Workspace",
-    image: "/images/nexus.jpg",
+    image: `${import.meta.env.BASE_URL}images/nexus.jpg`,
     link: "https://github.com/az201214/nexus-insight-crm",
   },
   {
     title: "Rally",
     category: "Built by Ali Zain",
     tools: "Dart, Flutter, Firebase",
-    image: "/images/rally.jpg",
+    image: `${import.meta.env.BASE_URL}images/rally.jpg`,
     link: "https://github.com/az201214/rally-app",
   },
   {
@@ -29,7 +29,7 @@ const projects = [
     title: "Meetily",
     category: "Open-source contribution",
     tools: "Rust, AI Tooling, Whisper, Ollama",
-    image: "/images/meetily.jpg",
+    image: `${import.meta.env.BASE_URL}images/meetily.jpg`,
     link: "https://github.com/az201214/meetily",
   },
 ];
