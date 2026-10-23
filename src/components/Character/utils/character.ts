@@ -7,10 +7,16 @@ import {
 } from "../../utils/GsapScroll";
 import { decryptFile } from "./decrypt";
 
+type CharacterOptions = {
+  /** Scroll-linked choreography is motion; reduced-motion visitors get a still model. */
+  animate: boolean;
+};
+
 const setCharacter = (
   _renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera,
+  options: CharacterOptions = { animate: true },
 ) => {
   const loader = new GLTFLoader();
   const dracoLoader = new DRACOLoader();
@@ -19,15 +25,17 @@ const setCharacter = (
   let disposed = false;
   const timelineCleanups: TimelineCleanup[] = [];
 
+  // Resolves with the character model or rejects; it never resolves empty,
+  // so callers always have a real model or a real error to report.
   const loadCharacter = () =>
-    new Promise<GLTF | null>((resolve, reject) => {
+    new Promise<GLTF>((resolve, reject) => {
       decryptFile(
         `${import.meta.env.BASE_URL}models/character.enc?v=2`,
         "MyCharacter12",
       )
         .then((data) => {
           if (disposed) {
-            resolve(null);
+            reject(new Error("Character load cancelled"));
             return;
           }
           const blobUrl = URL.createObjectURL(new Blob([data]));
@@ -37,7 +45,7 @@ const setCharacter = (
               URL.revokeObjectURL(blobUrl);
               if (disposed) {
                 disposeObject(gltf.scene);
-                resolve(null);
+                reject(new Error("Character load cancelled"));
                 return;
               }
               try {
@@ -61,10 +69,15 @@ const setCharacter = (
                   if (foot) foot.position.y = 3.36;
                 }
                 scene.add(gltf.scene);
-                timelineCleanups.push(
-                  setCharTimeline(gltf.scene, camera),
-                  setAllTimeline(),
-                );
+                scene.add(gltf.scene);
+                if (options.animate) {
+                  timelineCleanups.push(
+                    setCharTimeline(gltf.scene, camera),
+                    setAllTimeline(),
+                  );
+                } else {
+                  hideScrollProps(gltf.scene);
+                }
                 resolve(gltf);
               } catch (error) {
                 disposeObject(gltf.scene);
@@ -90,6 +103,31 @@ const setCharacter = (
     },
   };
 };
+
+/** The scroll timeline normally fades in the monitor and screen light; without it
+ *  they must stay transparent, as they are in the landing pose. */
+function hideScrollProps(root: THREE.Object3D) {
+  root.traverse((object) => {
+    if (object.name === "Plane004") {
+      object.children.forEach((child) => {
+        const mat = (child as THREE.Mesh).material as
+          | THREE.MeshStandardMaterial
+          | undefined;
+        if (!mat) return;
+        mat.transparent = true;
+        mat.opacity = 0;
+      });
+    }
+    if (object.name === "screenlight") {
+      const mat = (object as THREE.Mesh).material as
+        | THREE.MeshStandardMaterial
+        | undefined;
+      if (!mat) return;
+      mat.transparent = true;
+      mat.opacity = 0;
+    }
+  });
+}
 
 export function disposeObject(root: THREE.Object3D) {
   root.traverse((child) => {

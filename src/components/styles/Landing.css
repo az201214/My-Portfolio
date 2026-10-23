@@ -161,6 +161,66 @@
   z-index: 2;
 }
 
+/* Static character: visible while the 3D model loads, if WebGL is unavailable,
+   or if the model fails. The live canvas replaces it once the model is ready. */
+.character-still {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  /* The captured figure fills this share of the box, the same framing as the live model. */
+  height: 83.33%;
+  object-fit: contain;
+  object-position: 50% 100%;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* A static character (reduced motion, or no live model) stays in the hero and
+   scrolls away with the page instead of being pinned over the content. */
+@media screen and (min-width: 1025px) {
+  .character-model.character-static,
+  .character-model[data-scene-status="still"] {
+    position: absolute;
+    top: 0;
+    bottom: auto;
+    height: 100vh;
+  }
+}
+
+.character-model[data-scene-status="ready"] .character-still {
+  display: none;
+}
+
+/* A still character, or any character under reduced motion, must never
+   intercept clicks meant for the content behind it. */
+.character-model[data-scene-status="still"],
+.character-model[data-scene-status="still"] * {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .character-model,
+  .character-model * {
+    pointer-events: none;
+  }
+}
+
+/* The rim glow is a scroll-driven effect that reduced motion never plays, so
+   it would otherwise stay painted over the About text. */
+@media (prefers-reduced-motion: reduce) {
+  .character-rim {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .character-still {
+    object-fit: cover;
+  }
+}
+
 .character-hover {
   position: absolute;
   width: 280px;

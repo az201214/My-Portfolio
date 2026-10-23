@@ -1,6 +1,9 @@
-import { Component, ErrorInfo, PropsWithChildren } from "react";
+import { Component, ErrorInfo, PropsWithChildren, ReactNode } from "react";
+
+type ErrorBoundaryProps = PropsWithChildren<{ fallback?: ReactNode }>;
+
 export default class ErrorBoundary extends Component<
-  PropsWithChildren,
+  ErrorBoundaryProps,
   { failed: boolean }
 > {
   state = { failed: false };
@@ -8,9 +11,9 @@ export default class ErrorBoundary extends Component<
     return { failed: true };
   }
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.warn("Optional visual component failed", error, info);
+    console.error("3D character failed; showing the static image.", error, info);
   }
   render() {
-    return this.state.failed ? null : this.props.children;
+    return this.state.failed ? (this.props.fallback ?? null) : this.props.children;
   }
 }

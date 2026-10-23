@@ -36,6 +36,17 @@ const setAnimations = (gltf: GLTF) => {
     }, 2500);
     timers.push(timer);
   }
+  // Reduced motion: hold the intro's final frame and never advance the mixer.
+  function showStillPose() {
+    if (introClip) {
+      const action = mixer.clipAction(introClip);
+      action.setLoop(THREE.LoopOnce, 1);
+      action.clampWhenFinished = true;
+      action.time = introClip.duration;
+      action.play();
+    }
+    mixer.update(0);
+  }
   function hover(_gltf: GLTF, hoverDiv: HTMLDivElement) {
     const eyebrow = createBoneAction(gltf, mixer, "browup", eyebrowBoneNames);
     let hovering = false;
@@ -65,6 +76,7 @@ const setAnimations = (gltf: GLTF) => {
   return {
     mixer,
     startIntro,
+    showStillPose,
     hover,
     dispose: () => {
       timers.forEach(window.clearTimeout);
