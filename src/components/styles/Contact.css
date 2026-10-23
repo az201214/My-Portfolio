@@ -22,7 +22,7 @@
 .contact-flex h4 {
   font-weight: 500;
   margin: 0;
-  opacity: 0.6;
+  opacity: 1;
 }
 
 .contact-box {
@@ -46,7 +46,7 @@ a.contact-social {
   margin: 0;
 }
 
-.contact-box h2>span {
+.contact-box h2 > span {
   color: var(--accentColor);
 }
 
@@ -56,7 +56,7 @@ a.contact-social {
   line-height: 20px;
   display: flex;
   gap: 10px;
-  opacity: 0.5;
+  opacity: 0.7;
 }
 
 @media only screen and (max-width: 1600px) {

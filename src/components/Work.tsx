@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import "./styles/Work.css";
 import WorkImage from "./WorkImage";
 import { MdArrowBack, MdArrowForward } from "react-icons/md";
@@ -8,28 +8,29 @@ const projects = [
     title: "NexusInsight CRM",
     category: "Built by Ali Zain",
     tools: "TypeScript, Next.js, Supabase, B2B Workspace",
-    image: `${import.meta.env.BASE_URL}images/nexus.jpg`,
+    image: `${import.meta.env.BASE_URL}images/nexus.webp`,
     link: "https://github.com/az201214/nexus-insight-crm",
   },
   {
     title: "Rally",
     category: "Built by Ali Zain",
     tools: "Dart, Flutter, Firebase",
-    image: `${import.meta.env.BASE_URL}images/rally.jpg`,
+    image: `${import.meta.env.BASE_URL}images/rally.webp`,
     link: "https://github.com/az201214/rally-app",
   },
   {
-    title: "QuietLoad",
-    category: "Exploration",
-    tools: "Frontend, Performance Optimization",
-    image: "",
-    link: "https://github.com/az201214",
+    title: "FormBridge",
+    category: "Built by Ali Zain to simplify scholarship applications",
+    tools: "HTML, CSS, JavaScript · Guided checklist, application question helper",
+    image: `${import.meta.env.BASE_URL}images/formbridge.webp`,
+    link: "https://formbridge-october.vercel.app/",
+    linkLabel: "View FormBridge live demo",
   },
   {
     title: "Meetily",
     category: "Open-source contribution",
     tools: "Rust, AI Tooling, Whisper, Ollama",
-    image: `${import.meta.env.BASE_URL}images/meetily.jpg`,
+    image: `${import.meta.env.BASE_URL}images/meetily.webp`,
     link: "https://github.com/az201214/meetily",
   },
 ];
@@ -37,45 +38,58 @@ const projects = [
 const Work = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-
+  const animationTimer = useRef<number>();
+  useEffect(
+    () => () => {
+      if (animationTimer.current) window.clearTimeout(animationTimer.current);
+    },
+    [],
+  );
   const goToSlide = useCallback(
     (index: number) => {
-      if (isAnimating) return;
+      if (isAnimating || index === currentIndex) return;
       setIsAnimating(true);
       setCurrentIndex(index);
-      setTimeout(() => setIsAnimating(false), 500);
+      animationTimer.current = window.setTimeout(
+        () => setIsAnimating(false),
+        500,
+      );
     },
-    [isAnimating]
+    [currentIndex, isAnimating],
   );
-
-  const goToPrev = useCallback(() => {
-    const newIndex =
-      currentIndex === 0 ? projects.length - 1 : currentIndex - 1;
-    goToSlide(newIndex);
-  }, [currentIndex, goToSlide]);
-
-  const goToNext = useCallback(() => {
-    const newIndex =
-      currentIndex === projects.length - 1 ? 0 : currentIndex + 1;
-    goToSlide(newIndex);
-  }, [currentIndex, goToSlide]);
-
+  const goToPrev = useCallback(
+    () =>
+      goToSlide(currentIndex === 0 ? projects.length - 1 : currentIndex - 1),
+    [currentIndex, goToSlide],
+  );
+  const goToNext = useCallback(
+    () =>
+      goToSlide(currentIndex === projects.length - 1 ? 0 : currentIndex + 1),
+    [currentIndex, goToSlide],
+  );
   return (
-    <div className="work-section" id="work">
+    <section className="work-section" id="work" aria-labelledby="work-heading">
       <div className="work-container section-container">
-        <h2>
+        <h2 id="work-heading">
           My <span>Work</span>
         </h2>
-
-        <div className="carousel-wrapper">
-          {/* Navigation Arrows */}
+        <div
+          className="carousel-wrapper"
+          role="region"
+          aria-roledescription="carousel"
+          aria-label="Selected projects"
+        >
+          <p className="carousel-status" aria-live="polite">
+            Project {currentIndex + 1} of {projects.length}:{" "}
+            {projects[currentIndex].title}
+          </p>
           <button
             className="carousel-arrow carousel-arrow-left"
             onClick={goToPrev}
             aria-label="Previous project"
             data-cursor="disable"
           >
-            <MdArrowBack />
+            <MdArrowBack aria-hidden="true" />
           </button>
           <button
             className="carousel-arrow carousel-arrow-right"
@@ -83,19 +97,25 @@ const Work = () => {
             aria-label="Next project"
             data-cursor="disable"
           >
-            <MdArrowForward />
+            <MdArrowForward aria-hidden="true" />
           </button>
-
-          {/* Slides */}
           <div className="carousel-track-container">
             <div
               className="carousel-track"
-              style={{
-                transform: `translateX(-${currentIndex * 100}%)`,
-              }}
+              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
             >
               {projects.map((project, index) => (
-                <div className="carousel-slide" key={index}>
+                <div
+                  className="carousel-slide"
+                  key={project.title}
+                  role="group"
+                  aria-roledescription="slide"
+                  aria-label={`${index + 1} of ${projects.length}: ${project.title}`}
+                  aria-hidden={index !== currentIndex}
+                  ref={(element) => {
+                    if (element) element.inert = index !== currentIndex;
+                  }}
+                >
                   <div className="carousel-content">
                     <div className="carousel-info">
                       <div className="carousel-number">
@@ -103,11 +123,11 @@ const Work = () => {
                       </div>
                       <div className="carousel-details">
                         <h4>{project.title}</h4>
-                        <p className="carousel-category">
-                          {project.category}
-                        </p>
+                        <p className="carousel-category">{project.category}</p>
                         <div className="carousel-tools">
-                          <span className="tools-label">Tools & Features</span>
+                          <span className="tools-label">
+                            Tools &amp; Features
+                          </span>
                           <p>{project.tools}</p>
                         </div>
                       </div>
@@ -117,6 +137,7 @@ const Work = () => {
                         image={project.image}
                         alt={project.title}
                         link={project.link}
+                        linkLabel={project.linkLabel}
                       />
                     </div>
                   </div>
@@ -124,24 +145,25 @@ const Work = () => {
               ))}
             </div>
           </div>
-
-          {/* Dot Indicators */}
-          <div className="carousel-dots">
-            {projects.map((_, index) => (
+          <div
+            className="carousel-dots"
+            role="group"
+            aria-label="Choose project"
+          >
+            {projects.map((project, index) => (
               <button
-                key={index}
-                className={`carousel-dot ${index === currentIndex ? "carousel-dot-active" : ""
-                  }`}
+                key={project.title}
+                className={`carousel-dot ${index === currentIndex ? "carousel-dot-active" : ""}`}
                 onClick={() => goToSlide(index)}
-                aria-label={`Go to project ${index + 1}`}
+                aria-pressed={index === currentIndex}
+                aria-label={`Show ${project.title}`}
                 data-cursor="disable"
               />
             ))}
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
-
 export default Work;

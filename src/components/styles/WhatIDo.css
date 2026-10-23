@@ -37,7 +37,7 @@
   height: 500px;
   margin-left: 200px;
   position: relative;
-  display: none;
+  display: flex;
 }
 .what-content {
   width: 450px;
@@ -78,10 +78,10 @@
   letter-spacing: 1px;
   margin: 0px;
   font-size: 14px;
-  opacity: 0.3;
+  opacity: 0.75;
 }
 .what-content-in {
-  opacity: 0;
+  opacity: 1;
   animation: whatFlicker 0.5s 1 forwards;
   animation-delay: 1s;
 }

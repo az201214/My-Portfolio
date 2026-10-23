@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://az201214.github.io/My-Portfolio/sitemap.xml

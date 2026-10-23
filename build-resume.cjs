@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { pathToFileURL } = require('url');
+const { chromium } = require('@playwright/test');
 
 const profileImagePath = path.join(__dirname, 'public', 'images', 'profile.jpg');
 const profileFallback = path.join(__dirname, 'public', 'images', 'profile.jpg.jpeg');
@@ -526,25 +527,34 @@ console.log('Updated resume.html successfully.');
 const rootPdfPath = path.join(__dirname, 'Ali_Zain_Resume.pdf');
 const publicPdfPath = path.join(__dirname, 'public', 'Ali_Zain_Resume.pdf');
 
-// Chrome executable
-const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-
-console.log('Generating PDF via headless Chrome...');
-execFileSync(chromePath, [
-  '--headless=new',
-  '--disable-gpu',
-  '--no-sandbox',
-  '--no-pdf-header-footer',
-  '--print-to-pdf=' + rootPdfPath,
-  'file:///' + resumeHtmlPath.replace(/\\/g, '/')
-]);
-
-if (fs.existsSync(rootPdfPath)) {
-  const stats = fs.statSync(rootPdfPath);
-  console.log('Successfully generated ' + rootPdfPath + ' (' + stats.size + ' bytes)');
-  // Also copy to public/Ali_Zain_Resume.pdf so portfolio resume button serves latest
-  fs.copyFileSync(rootPdfPath, publicPdfPath);
-  console.log('Successfully copied to ' + publicPdfPath);
-} else {
-  throw new Error('PDF file was not created.');
-}
+// Generate the PDF with Playwright's bundled Chromium. Set CHROME_PATH to use a
+// locally installed Chrome/Chromium binary when desired (useful in CI).
+;(async () => {
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.CHROME_PATH || undefined,
+  });
+  try {
+    const page = await browser.newPage();
+    await page.goto(pathToFileURL(resumeHtmlPath).href, { waitUntil: 'networkidle' });
+    await page.pdf({
+      path: rootPdfPath,
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' },
+    });
+  } finally {
+    await browser.close();
+  }
+  if (fs.existsSync(rootPdfPath)) {
+    const stats = fs.statSync(rootPdfPath);
+    console.log('Successfully generated ' + rootPdfPath + ' (' + stats.size + ' bytes)');
+    fs.copyFileSync(rootPdfPath, publicPdfPath);
+    console.log('Successfully copied to ' + publicPdfPath);
+  } else {
+    throw new Error('PDF file was not created.');
+  }
+})().catch((error) => {
+  console.error('Error generating resume:', error);
+  process.exitCode = 1;
+});

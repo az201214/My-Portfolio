@@ -1,80 +1,69 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { SplitText } from "gsap/SplitText";
 
-interface ParaElement extends HTMLElement {
-  anim?: gsap.core.Animation;
+interface AnimatedElement extends HTMLElement {
+  anim?: gsap.core.Tween;
   split?: SplitText;
 }
 
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
+gsap.registerPlugin(ScrollTrigger, SplitText);
 
 export default function setSplitText() {
-  ScrollTrigger.config({ ignoreMobileResize: true });
-  if (window.innerWidth < 900) return;
-  const paras: NodeListOf<ParaElement> = document.querySelectorAll(".para");
-  const titles: NodeListOf<ParaElement> = document.querySelectorAll(".title");
+  const paras: NodeListOf<AnimatedElement> = document.querySelectorAll(".para");
+  const titles: NodeListOf<AnimatedElement> =
+    document.querySelectorAll(".title");
+  const splits: SplitText[] = [];
+  const animations: gsap.core.Tween[] = [];
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const TriggerStart = window.innerWidth <= 1024 ? "top 60%" : "20% 60%";
-  const ToggleAction = "play pause resume reverse";
+  if (window.innerWidth < 900 || reduced) {
+    [...paras, ...titles].forEach((element) =>
+      element.classList.add("visible"),
+    );
+    return () => undefined;
+  }
 
-  paras.forEach((para: ParaElement) => {
-    para.classList.add("visible");
-    if (para.anim) {
-      para.anim.progress(1).kill();
-      para.split?.revert();
-    }
-
-    para.split = new SplitText(para, {
-      type: "lines,words",
+  const triggerStart = window.innerWidth <= 1024 ? "top 60%" : "20% 60%";
+  const makeAnimation = (element: AnimatedElement, type: "words" | "chars") => {
+    element.split = new SplitText(element, {
+      type: type === "words" ? "lines,words" : "chars,lines",
       linesClass: "split-line",
     });
-
-    para.anim = gsap.fromTo(
-      para.split.words,
-      { autoAlpha: 0, y: 80 },
+    splits.push(element.split);
+    const tween = gsap.fromTo(
+      element.split[type],
+      type === "words"
+        ? { autoAlpha: 0, y: 80 }
+        : { autoAlpha: 0, y: 80, rotate: 10 },
       {
         autoAlpha: 1,
         scrollTrigger: {
-          trigger: para.parentElement?.parentElement,
-          toggleActions: ToggleAction,
-          start: TriggerStart,
+          trigger: element.parentElement?.parentElement,
+          toggleActions: "play pause resume reverse",
+          start: triggerStart,
         },
-        duration: 1,
-        ease: "power3.out",
+        duration: type === "words" ? 1 : 0.8,
+        ease: type === "words" ? "power3.out" : "power2.inOut",
         y: 0,
-        stagger: 0.02,
-      }
+        ...(type === "chars" ? { rotate: 0 } : {}),
+        stagger: type === "words" ? 0.02 : 0.03,
+      },
     );
+    element.anim = tween;
+    animations.push(tween);
+  };
+  paras.forEach((element) => {
+    element.classList.add("visible");
+    makeAnimation(element, "words");
   });
-  titles.forEach((title: ParaElement) => {
-    if (title.anim) {
-      title.anim.progress(1).kill();
-      title.split?.revert();
-    }
-    title.split = new SplitText(title, {
-      type: "chars,lines",
-      linesClass: "split-line",
-    });
-    title.anim = gsap.fromTo(
-      title.split.chars,
-      { autoAlpha: 0, y: 80, rotate: 10 },
-      {
-        autoAlpha: 1,
-        scrollTrigger: {
-          trigger: title.parentElement?.parentElement,
-          toggleActions: ToggleAction,
-          start: TriggerStart,
-        },
-        duration: 0.8,
-        ease: "power2.inOut",
-        y: 0,
-        rotate: 0,
-        stagger: 0.03,
-      }
-    );
-  });
+  titles.forEach((element) => makeAnimation(element, "chars"));
 
-  ScrollTrigger.addEventListener("refresh", () => setSplitText());
+  return () => {
+    animations.forEach((animation) => {
+      animation.scrollTrigger?.kill();
+      animation.kill();
+    });
+    splits.forEach((split) => split.revert());
+  };
 }

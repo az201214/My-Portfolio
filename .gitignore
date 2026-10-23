@@ -27,3 +27,10 @@ dist-ssr
 backup/
 .env
 ._*
+# Generated resume output (the public copy is the distributable artifact)
+/Ali_Zain_Resume.pdf
+*.tsbuildinfo
+
+# Browser test output
+/playwright-report/
+/test-results/

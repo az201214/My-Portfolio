@@ -1,173 +1,72 @@
-# 3D Portfolio Website
+# Ali Zain — Portfolio
 
-This repository contains the source code for a personal 3D portfolio built with React, TypeScript, Three.js, React Three Fiber, and GSAP. It includes animated page sections, a character scene, custom cursor interactions, and smooth transitions designed for a modern portfolio experience.
+A responsive portfolio for Ali Zain, a student developer and AI builder. Built with React 18, TypeScript, Vite 8, Three.js and GSAP, with a dark visual identity and an optional animated 3D character.
 
-Live site: [https://az201214.github.io/My-Portfolio/](https://az201214.github.io/My-Portfolio/)
-## Table of Contents
+Live site: [az201214.github.io/My-Portfolio](https://az201214.github.io/My-Portfolio/). Local changes are not live until separately published.
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Available Scripts](#available-scripts)
-- [GSAP License Note](#gsap-license-note)
-- [Customization Guide](#customization-guide)
-- [Troubleshooting](#troubleshooting)
-- [Deployment](#deployment)
-- [License](#license)
+## What’s included
 
-## Features
+Clear project and contact actions, an accessible project carousel, a downloadable résumé, optimized WebP previews, canonical/social metadata, and keyboard-friendly navigation. The essential page works independently of WebGL and model downloads. Reduced-motion visitors receive static content without downloading the optional character bundle.
 
-- Responsive one-page portfolio layout with reusable section components.
-- 3D character scene rendering powered by React Three Fiber and Three.js.
-- GSAP-powered animations and transitions for interactive storytelling.
-- Custom cursor, hover interactions, and scroll-driven visual effects.
-- Organized component architecture with dedicated utilities and style modules.
+The 3D scene releases its renderer, animation frame, listeners, timers, textures and scoped animation timelines when unmounted. Main content does not wait indefinitely for the model.
 
-## Tech Stack
+## Run locally
 
-### Core
+Use Node.js **22.12+**, preferably Node 24, and npm.
 
-- React 18
-- TypeScript
-- Vite
-
-### Animation and 3D
-
-- GSAP + `@gsap/react`
-- Three.js
-- `@react-three/fiber`
-- `@react-three/drei`
-- `@react-three/postprocessing`
-- `@react-three/cannon`
-- `@react-three/rapier`
-
-### Supporting Libraries
-
-- `react-icons`
-- `react-fast-marquee`
-- `@vercel/analytics`
-
-## Project Structure
-
-```text
-.
-├── public/                    # Static assets
-├── src/
-│   ├── assets/                # Local media/assets
-│   ├── components/
-│   │   ├── Character/         # 3D scene + character logic/utilities
-│   │   ├── styles/            # Section/component CSS files
-│   │   ├── About.tsx
-│   │   ├── Career.tsx
-│   │   ├── Contact.tsx
-│   │   ├── Landing.tsx
-│   │   ├── MainContainer.tsx  # Main page composition
-│   │   ├── Navbar.tsx
-│   │   ├── TechStack.tsx
-│   │   ├── WhatIDo.tsx
-│   │   └── Work.tsx
-│   ├── context/               # Global providers (loading state, etc.)
-│   ├── data/                  # Static data/content definitions
-│   ├── App.tsx
-│   └── main.tsx
-├── package.json
-└── vite.config.ts
+```bash
+npm ci
+npm run dev
 ```
 
-## Getting Started
+Open the URL printed by Vite, including the `/My-Portfolio/` base path. This base matches the GitHub Pages repository deployment.
 
-### Prerequisites
+## Validate changes
 
-- Node.js 18+ (recommended)
-- npm 9+ (or compatible)
+```bash
+npx playwright install chromium
+npm run check
+npm audit
+```
 
-### Installation
+On a fresh Linux CI environment, use `npx playwright install --with-deps chromium`.
 
-1. Clone the repository:
+| Command | Purpose |
+| --- | --- |
+| `npm run lint` | ESLint checks |
+| `npm test` | Model compatibility, SEO, optimized assets, résumé tooling and CI regressions |
+| `npm run build` | TypeScript project check and production build |
+| `npm run check:links` | Check built local assets under the GitHub Pages base; not an external-link availability monitor |
+| `npm run test:e2e` | Chromium desktop/mobile interactions, failure recovery, keyboard checks, automated accessibility and successful 3D loading |
+| `npm run check` | Run the checks above in sequence |
+| `npm run preview` | Serve the built site locally |
+| `npm run resume:pdf` | Generate `public/Ali_Zain_Resume.pdf` from `resume.html` |
 
-   ```bash
-   git clone <your-repository-url>
-   cd 3d-portfolio
-   ```
+Browser reports are written to `playwright-report/`; failure traces/screenshots are under `test-results/`. These generated files are ignored. Automated accessibility checks complement, but do not replace, testing with assistive technology and real devices.
 
-2. Install dependencies:
+## Edit content and assets
 
-   ```bash
-   npm install
-   ```
+- Main sections: `src/components/Landing.tsx`, `About.tsx`, `WhatIDo.tsx`, `Career.tsx`, `Work.tsx`, and `Contact.tsx`.
+- Project previews: `public/images/*.webp`. Keep imports in `Work.tsx` in sync.
+- Résumé: edit `resume.html`, then run `npm run resume:pdf`. `build-resume.cjs` is an alternative programmatic source generator; inspect its template before using it because it replaces the HTML too. Both scripts use the declared Playwright dependency and support optional `CHROME_PATH`.
+- Canonical/social metadata: `index.html`, `public/sitemap.xml`, `public/robots.txt` and `public/og-image.jpg`.
+- 3D scene and lifecycle: `src/components/Character/`. The existing model is preserved.
+- `FormBridge` is Ali Zain's project for making scholarship applications more organized. Built with HTML, CSS and JavaScript, it offers a guided preparation checklist and application-question helper. Its card links to the [live demo](https://formbridge-october.vercel.app/); no public repository link is confirmed or displayed.
 
-3. Start the local development server:
+### Model tooling
 
-   ```bash
-   npm run dev
-   ```
+```bash
+node scripts/encrypt-model.cjs path/to/character.glb
+```
 
-4. Open the URL shown in the terminal (typically `http://localhost:5173`).
-
-## Available Scripts
-
-- `npm run dev`  
-  Starts Vite dev server and exposes host for local network testing.
-
-- `npm run build`  
-  Type-checks and builds a production-ready bundle.
-
-- `npm run preview`  
-  Serves the production build locally for verification.
-
-- `npm run lint`  
-  Runs ESLint checks across the project.
-
-## GSAP License Note
-
-This project uses the standard `gsap` package, including bonus plugins now available in the core package.
-
-- Install dependencies with `npm install`.
-- If migrating from older setups, remove `gsap-trial` from your project.
-
-Read official installation guidance here: [GSAP Installation Docs](https://gsap.com/docs/v3/Installation/)
-
-## Customization Guide
-
-You can adapt this portfolio to your own profile by updating the following areas:
-
-- **Content sections**: Edit files in `src/components/` such as `About.tsx`, `Career.tsx`, `WhatIDo.tsx`, and `Work.tsx`.
-- **Data source**: Update static values in files under `src/data/`.
-- **Styling**: Modify component styles in `src/components/styles/` and global styles in `src/index.css` / `src/App.css`.
-- **3D scene behavior**: Adjust scene logic in `src/components/Character/` and related utilities.
-- **Animations**: Tweak GSAP utilities under `src/components/utils/`.
-
-## Troubleshooting
-
-- **Blank screen in development**  
-  Check browser console for module import errors and verify all dependencies are installed.
-
-- **3D performance issues on low-end devices**  
-  Reduce scene complexity and post-processing effects in the character/scene utilities.
-
-- **GSAP plugin errors**  
-  Ensure you have the correct plugin package and license configuration for your target environment.
-
-- **TypeScript build failures**  
-  Run `npm run build` and address reported type errors before deploying.
+This produces `public/models/character.enc` in the format expected by the loader. The shared public password is **asset obfuscation, not security or access control**. A regression test checks that the shipped model actually decrypts to a valid binary glTF. Do not put private assets or secrets into a public client bundle.
 
 ## Deployment
 
-1. Create a production build:
+The workflow validates pull requests. Future pushes to `main`, or manual workflow dispatch, can deploy to GitHub Pages **only after** lint, tests, build, local-asset checks, browser checks and the dependency-audit gate pass. This requires Pages to be configured for GitHub Actions in the repository.
 
-   ```bash
-   npm run build
-   ```
-
-2. Validate locally:
-
-   ```bash
-   npm run preview
-   ```
-
-3. Deploy the generated `dist/` folder to your hosting provider (for example Vercel, Netlify, or Cloudflare Pages).
+For another hosting path, update Vite’s `base` and the canonical/social/sitemap URLs together. Source control excludes `dist/`, local dependencies, browser reports and TypeScript build metadata.
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+Project source is available under the [MIT License](LICENSE). Third-party packages and media retain their respective licenses; the project license does not replace those terms.

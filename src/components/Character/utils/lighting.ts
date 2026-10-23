@@ -18,18 +18,32 @@ const setLighting = (scene: THREE.Scene) => {
   pointLight.castShadow = true;
   scene.add(pointLight);
 
-  new RGBELoader()
-    .setPath(`${import.meta.env.BASE_URL}models/`)
-    .load("char_enviorment.hdr?v=2", function (texture) {
+  let disposed = false;
+  new RGBELoader().setPath(`${import.meta.env.BASE_URL}models/`).load(
+    "char_enviorment.hdr?v=2",
+    (texture) => {
+      if (disposed) {
+        texture.dispose();
+        return;
+      }
       texture.mapping = THREE.EquirectangularReflectionMapping;
       scene.environment = texture;
       scene.environmentIntensity = 0;
       scene.environmentRotation.set(5.76, 85.85, 1);
-    });
+    },
+    undefined,
+    () => undefined,
+  );
 
   function setPointLight(screenLight: THREE.Mesh | null) {
-    if (screenLight && screenLight.material && (screenLight.material as THREE.MeshStandardMaterial).opacity > 0.9) {
-      pointLight.intensity = (screenLight.material as THREE.MeshStandardMaterial).emissiveIntensity * 20; // Reverted to prevent excessive glow
+    if (
+      screenLight &&
+      screenLight.material &&
+      (screenLight.material as THREE.MeshStandardMaterial).opacity > 0.9
+    ) {
+      pointLight.intensity =
+        (screenLight.material as THREE.MeshStandardMaterial).emissiveIntensity *
+        20; // Reverted to prevent excessive glow
     } else {
       pointLight.intensity = 0;
     }
@@ -55,7 +69,17 @@ const setLighting = (scene: THREE.Scene) => {
     });
   }
 
-  return { setPointLight, turnOnLights };
+  function dispose() {
+    disposed = true;
+    gsap.killTweensOf(scene);
+    gsap.killTweensOf(directionalLight);
+    gsap.killTweensOf(".character-rim");
+    if (scene.environment) {
+      scene.environment.dispose();
+      scene.environment = null;
+    }
+  }
+  return { setPointLight, turnOnLights, dispose };
 };
 
 export default setLighting;

@@ -1,78 +1,110 @@
 import * as THREE from "three";
 import { DRACOLoader, GLTF, GLTFLoader } from "three-stdlib";
-import { setCharTimeline, setAllTimeline } from "../../utils/GsapScroll";
+import {
+  setCharTimeline,
+  setAllTimeline,
+  TimelineCleanup,
+} from "../../utils/GsapScroll";
 import { decryptFile } from "./decrypt";
 
 const setCharacter = (
-  renderer: THREE.WebGLRenderer,
+  _renderer: THREE.WebGLRenderer,
   scene: THREE.Scene,
-  camera: THREE.PerspectiveCamera
+  camera: THREE.PerspectiveCamera,
 ) => {
   const loader = new GLTFLoader();
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath(`${import.meta.env.BASE_URL}draco/`);
   loader.setDRACOLoader(dracoLoader);
+  let disposed = false;
+  const timelineCleanups: TimelineCleanup[] = [];
 
-  const loadCharacter = () => {
-    return new Promise<GLTF | null>((resolve, reject) => {
+  const loadCharacter = () =>
+    new Promise<GLTF | null>((resolve, reject) => {
       decryptFile(
         `${import.meta.env.BASE_URL}models/character.enc?v=2`,
-        "MyCharacter12"
-      ).then((encryptedBlob) => {
-        const blobUrl = URL.createObjectURL(new Blob([encryptedBlob]));
-
-        let character: THREE.Object3D;
-        loader.load(
-          blobUrl,
-          async (gltf) => {
-            character = gltf.scene;
-            await renderer.compileAsync(character, camera, scene);
-            character.traverse((child: THREE.Object3D) => {
-              const mesh = child as THREE.Mesh;
-              if (mesh.isMesh) {
-
-                // Change clothing colors to match site theme
-                if (mesh.material) {
-                  if (mesh.name === "BODY.SHIRT") { // The shirt mesh
-                    const newMat = (mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial;
-                    newMat.color = new THREE.Color("#8B4513");
-                    mesh.material = newMat;
-                  } else if (mesh.name === "Pant") {
-                    const newMat = (mesh.material as THREE.Material).clone() as THREE.MeshStandardMaterial;
-                    newMat.color = new THREE.Color("#000000");
-                    mesh.material = newMat;
-                  }
-                }
-
-                child.castShadow = true;
-                child.receiveShadow = true;
-                mesh.frustumCulled = true;
-              }
-            });
-            resolve(gltf);
-            setCharTimeline(character, camera);
-            setAllTimeline();
-            character!.getObjectByName("footR")!.position.y = 3.36;
-            character!.getObjectByName("footL")!.position.y = 3.36;
-
-            // Monitor scale is handled by GsapScroll.ts animations
-
-            dracoLoader.dispose();
-          },
-          undefined,
-          (error) => {
-            console.error("Error loading GLTF model:", error);
-            reject(error);
+        "MyCharacter12",
+      )
+        .then((data) => {
+          if (disposed) {
+            resolve(null);
+            return;
           }
-        );
-      }).catch((err) => {
-        reject(err);
-        console.error(err);
-      });
+          const blobUrl = URL.createObjectURL(new Blob([data]));
+          loader.load(
+            blobUrl,
+            (gltf) => {
+              URL.revokeObjectURL(blobUrl);
+              if (disposed) {
+                disposeObject(gltf.scene);
+                resolve(null);
+                return;
+              }
+              try {
+                gltf.scene.traverse((child) => {
+                  const mesh = child as THREE.Mesh;
+                  if (!mesh.isMesh) return;
+                  if (mesh.name === "BODY.SHIRT" || mesh.name === "Pant") {
+                    const mat = (
+                      mesh.material as THREE.Material
+                    ).clone() as THREE.MeshStandardMaterial;
+                    mat.color.set(
+                      mesh.name === "BODY.SHIRT" ? "#8B4513" : "#000000",
+                    );
+                    mesh.material = mat;
+                  }
+                  mesh.castShadow = true;
+                  mesh.receiveShadow = true;
+                });
+                for (const name of ["footR", "footL"]) {
+                  const foot = gltf.scene.getObjectByName(name);
+                  if (foot) foot.position.y = 3.36;
+                }
+                scene.add(gltf.scene);
+                timelineCleanups.push(
+                  setCharTimeline(gltf.scene, camera),
+                  setAllTimeline(),
+                );
+                resolve(gltf);
+              } catch (error) {
+                disposeObject(gltf.scene);
+                reject(error);
+              }
+              dracoLoader.dispose();
+            },
+            undefined,
+            (error) => {
+              URL.revokeObjectURL(blobUrl);
+              reject(error);
+            },
+          );
+        })
+        .catch(reject);
     });
+  return {
+    loadCharacter,
+    dispose: () => {
+      disposed = true;
+      timelineCleanups.splice(0).forEach((cleanup) => cleanup());
+      dracoLoader.dispose();
+    },
   };
-
-  return { loadCharacter };
 };
 
+export function disposeObject(root: THREE.Object3D) {
+  root.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh) return;
+    mesh.geometry?.dispose();
+    const materials = Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material];
+    materials.forEach((material) => {
+      Object.values(material).forEach((value) => {
+        if (value instanceof THREE.Texture) value.dispose();
+      });
+      material.dispose();
+    });
+  });
+}
 export default setCharacter;
