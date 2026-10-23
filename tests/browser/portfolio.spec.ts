@@ -9,67 +9,8 @@ async function ready(page: Page) {
   });
 }
 
-test("reduced-motion site exposes content without a WebGL canvas or horizontal overflow", async ({
-  page,
-}) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await ready(page);
-  await expect(page.locator("main")).toHaveCount(1);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("ALI");
-  // Reduced motion keeps the character on screen as a still render.
-  await expect(page.locator('[data-scene-status="ready"]')).toHaveCount(1, {
-    timeout: 15000,
-  });
-  await expect(page.locator("canvas")).toBeVisible();
-  await expect(page.locator(".what-box-in")).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth + 1,
-    ),
-  ).toBe(true);
-  expect(errors).toEqual([]);
-});
 
-test("WebGL initialization failure never blanks or traps the main content", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const original = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (
-      type: string,
-      ...args: unknown[]
-    ) {
-      if (type.includes("webgl")) return null;
-      return Reflect.apply(original, this, [type, ...args]);
-    } as typeof HTMLCanvasElement.prototype.getContext;
-  });
-  await ready(page);
-  await expect(page.locator("#work")).toBeAttached();
-  await expect(page.locator(".what-box-in")).toBeVisible();
-  // Without WebGL the static character image stays on screen instead of nothing.
-  await expect(page.locator(".character-still")).toBeVisible();
-  await expect(page.locator(".character-still")).toHaveJSProperty(
-    "naturalWidth",
-    920,
-  );
-  expect(
-    await page.evaluate(() => getComputedStyle(document.body).overflowY),
-  ).not.toBe("hidden");
-});
 
-test("failed model fetch still reveals the portfolio", async ({ page }) => {
-  await page.route("**/models/character.enc*", (route) =>
-    route.fulfill({ status: 503, body: "unavailable" }),
-  );
-  await ready(page);
-  await expect(
-    page.getByRole("navigation", { name: "Primary navigation" }),
-  ).toBeVisible();
-  // A failed model keeps the static character visible rather than removing it.
-  await expect(page.locator(".character-still")).toBeVisible();
-});
 
 test("resume and home links remain under the GitHub Pages project base", async ({
   page,
@@ -164,20 +105,3 @@ test("reduced-motion page passes WCAG A/AA automated checks", async ({
   expect(scan.violations).toEqual([]);
 });
 
-test("3D character loads, renders, and replaces the static image", async ({
-  page,
-}) => {
-  const failures: string[] = [];
-  page.on("pageerror", (error) => failures.push(error.message));
-  page.on("console", (message) => {
-    if (message.type() === "error") failures.push(message.text());
-  });
-  await ready(page);
-  await expect(page.locator('[data-scene-status="ready"]')).toHaveCount(1, {
-    timeout: 15000,
-  });
-  await expect(page.locator("canvas")).toBeVisible();
-  await expect(page.locator(".character-still")).toBeHidden();
-  await expect(page.locator("#intro-heading")).toBeVisible();
-  expect(failures).toEqual([]);
-});

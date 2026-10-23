@@ -1,69 +1,80 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { SplitText } from "gsap/SplitText";
 
-interface AnimatedElement extends HTMLElement {
-  anim?: gsap.core.Tween;
+interface ParaElement extends HTMLElement {
+  anim?: gsap.core.Animation;
   split?: SplitText;
 }
 
-gsap.registerPlugin(ScrollTrigger, SplitText);
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
 export default function setSplitText() {
-  const paras: NodeListOf<AnimatedElement> = document.querySelectorAll(".para");
-  const titles: NodeListOf<AnimatedElement> =
-    document.querySelectorAll(".title");
-  const splits: SplitText[] = [];
-  const animations: gsap.core.Tween[] = [];
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  ScrollTrigger.config({ ignoreMobileResize: true });
+  if (window.innerWidth < 900) return;
+  const paras: NodeListOf<ParaElement> = document.querySelectorAll(".para");
+  const titles: NodeListOf<ParaElement> = document.querySelectorAll(".title");
 
-  if (window.innerWidth < 900 || reduced) {
-    [...paras, ...titles].forEach((element) =>
-      element.classList.add("visible"),
-    );
-    return () => undefined;
-  }
+  const TriggerStart = window.innerWidth <= 1024 ? "top 60%" : "20% 60%";
+  const ToggleAction = "play pause resume reverse";
 
-  const triggerStart = window.innerWidth <= 1024 ? "top 60%" : "20% 60%";
-  const makeAnimation = (element: AnimatedElement, type: "words" | "chars") => {
-    element.split = new SplitText(element, {
-      type: type === "words" ? "lines,words" : "chars,lines",
+  paras.forEach((para: ParaElement) => {
+    para.classList.add("visible");
+    if (para.anim) {
+      para.anim.progress(1).kill();
+      para.split?.revert();
+    }
+
+    para.split = new SplitText(para, {
+      type: "lines,words",
       linesClass: "split-line",
     });
-    splits.push(element.split);
-    const tween = gsap.fromTo(
-      element.split[type],
-      type === "words"
-        ? { autoAlpha: 0, y: 80 }
-        : { autoAlpha: 0, y: 80, rotate: 10 },
+
+    para.anim = gsap.fromTo(
+      para.split.words,
+      { autoAlpha: 0, y: 80 },
       {
         autoAlpha: 1,
         scrollTrigger: {
-          trigger: element.parentElement?.parentElement,
-          toggleActions: "play pause resume reverse",
-          start: triggerStart,
+          trigger: para.parentElement?.parentElement,
+          toggleActions: ToggleAction,
+          start: TriggerStart,
         },
-        duration: type === "words" ? 1 : 0.8,
-        ease: type === "words" ? "power3.out" : "power2.inOut",
+        duration: 1,
+        ease: "power3.out",
         y: 0,
-        ...(type === "chars" ? { rotate: 0 } : {}),
-        stagger: type === "words" ? 0.02 : 0.03,
-      },
+        stagger: 0.02,
+      }
     );
-    element.anim = tween;
-    animations.push(tween);
-  };
-  paras.forEach((element) => {
-    element.classList.add("visible");
-    makeAnimation(element, "words");
   });
-  titles.forEach((element) => makeAnimation(element, "chars"));
-
-  return () => {
-    animations.forEach((animation) => {
-      animation.scrollTrigger?.kill();
-      animation.kill();
+  titles.forEach((title: ParaElement) => {
+    if (title.anim) {
+      title.anim.progress(1).kill();
+      title.split?.revert();
+    }
+    title.split = new SplitText(title, {
+      type: "chars,lines",
+      linesClass: "split-line",
     });
-    splits.forEach((split) => split.revert());
-  };
+    title.anim = gsap.fromTo(
+      title.split.chars,
+      { autoAlpha: 0, y: 80, rotate: 10 },
+      {
+        autoAlpha: 1,
+        scrollTrigger: {
+          trigger: title.parentElement?.parentElement,
+          toggleActions: ToggleAction,
+          start: TriggerStart,
+        },
+        duration: 0.8,
+        ease: "power2.inOut",
+        y: 0,
+        rotate: 0,
+        stagger: 0.03,
+      }
+    );
+  });
+
+  ScrollTrigger.addEventListener("refresh", () => setSplitText());
 }

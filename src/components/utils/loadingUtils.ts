@@ -1,46 +1,38 @@
 export const setProgress = (setLoading: (value: number) => void) => {
-  let percent = 0;
-  let interval: number | undefined;
-  let settled = false;
-  const clearIntervalSafe = () => {
-    if (interval !== undefined) window.clearInterval(interval);
-    interval = undefined;
-  };
-  interval = window.setInterval(() => {
-    if (percent < 50) {
-      percent = Math.min(
-        50,
-        percent + Math.max(1, Math.round(Math.random() * 5)),
-      );
+  let percent: number = 0;
+
+  let interval = setInterval(() => {
+    if (percent <= 50) {
+      const rand = Math.round(Math.random() * 5);
+      percent = percent + rand;
       setLoading(percent);
     } else {
-      clearIntervalSafe();
-      interval = window.setInterval(() => {
-        percent = Math.min(
-          92,
-          percent + Math.max(1, Math.round(Math.random())),
-        );
+      clearInterval(interval);
+      interval = setInterval(() => {
+        percent = percent + Math.round(Math.random());
         setLoading(percent);
-        if (percent >= 92) clearIntervalSafe();
+        if (percent > 91) {
+          clearInterval(interval);
+        }
       }, 2000);
     }
   }, 100);
+
   function clear() {
-    if (settled) return;
-    settled = true;
-    clearIntervalSafe();
+    clearInterval(interval);
+    setLoading(100);
   }
+
   function loaded() {
-    if (settled) return Promise.resolve(percent);
-    clearIntervalSafe();
     return new Promise<number>((resolve) => {
-      interval = window.setInterval(() => {
-        percent = Math.min(100, percent + 1);
-        setLoading(percent);
-        if (percent >= 100) {
-          settled = true;
-          clearIntervalSafe();
+      clearInterval(interval);
+      interval = setInterval(() => {
+        if (percent < 100) {
+          percent++;
+          setLoading(percent);
+        } else {
           resolve(percent);
+          clearInterval(interval);
         }
       }, 2);
     });

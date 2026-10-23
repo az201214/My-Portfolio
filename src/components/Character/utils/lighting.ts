@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { RGBELoader } from "three-stdlib";
 import { gsap } from "gsap";
 
-const setLighting = (scene: THREE.Scene, onEnvironmentLoaded?: () => void) => {
+const setLighting = (scene: THREE.Scene) => {
   const directionalLight = new THREE.DirectionalLight(0x0070f3, 0); // Electric cobalt
   directionalLight.intensity = 0;
   directionalLight.position.set(-0.47, -0.32, -1);
@@ -18,51 +18,25 @@ const setLighting = (scene: THREE.Scene, onEnvironmentLoaded?: () => void) => {
   pointLight.castShadow = true;
   scene.add(pointLight);
 
-  let disposed = false;
-  // The HDR environment may finish loading after the lights are turned on,
-  // so it must read this flag instead of resetting the intensity to 0.
-  let lightsOn = false;
-  new RGBELoader().setPath(`${import.meta.env.BASE_URL}models/`).load(
-    "char_enviorment.hdr?v=2",
-    (texture) => {
-      if (disposed) {
-        texture.dispose();
-        return;
-      }
+  new RGBELoader()
+    .setPath(`${import.meta.env.BASE_URL}models/`)
+    .load("char_enviorment.hdr?v=2", function (texture) {
       texture.mapping = THREE.EquirectangularReflectionMapping;
       scene.environment = texture;
-      scene.environmentIntensity = lightsOn ? 0.35 : 0;
+      scene.environmentIntensity = 0;
       scene.environmentRotation.set(5.76, 85.85, 1);
-      onEnvironmentLoaded?.();
-    },
-    undefined,
-    () => undefined,
-  );
+    });
 
   function setPointLight(screenLight: THREE.Mesh | null) {
-    if (
-      screenLight &&
-      screenLight.material &&
-      (screenLight.material as THREE.MeshStandardMaterial).opacity > 0.9
-    ) {
-      pointLight.intensity =
-        (screenLight.material as THREE.MeshStandardMaterial).emissiveIntensity *
-        20; // Reverted to prevent excessive glow
+    if (screenLight && screenLight.material && (screenLight.material as THREE.MeshStandardMaterial).opacity > 0.9) {
+      pointLight.intensity = (screenLight.material as THREE.MeshStandardMaterial).emissiveIntensity * 20; // Reverted to prevent excessive glow
     } else {
       pointLight.intensity = 0;
     }
   }
   const duration = 2;
   const ease = "power2.inOut";
-  function turnOnLights(instant = false) {
-    lightsOn = true;
-    if (instant) {
-      // Reduced motion: light the still model without fades.
-      scene.environmentIntensity = 0.35;
-      directionalLight.intensity = 1.5;
-      gsap.set(".character-rim", { y: "55%", opacity: 1 });
-      return;
-    }
+  function turnOnLights() {
     gsap.to(scene, {
       environmentIntensity: 0.35,
       duration: duration,
@@ -81,17 +55,7 @@ const setLighting = (scene: THREE.Scene, onEnvironmentLoaded?: () => void) => {
     });
   }
 
-  function dispose() {
-    disposed = true;
-    gsap.killTweensOf(scene);
-    gsap.killTweensOf(directionalLight);
-    gsap.killTweensOf(".character-rim");
-    if (scene.environment) {
-      scene.environment.dispose();
-      scene.environment = null;
-    }
-  }
-  return { setPointLight, turnOnLights, dispose };
+  return { setPointLight, turnOnLights };
 };
 
 export default setLighting;

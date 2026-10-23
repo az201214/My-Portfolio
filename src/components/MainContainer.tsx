@@ -1,4 +1,4 @@
-import { PropsWithChildren, useEffect, useRef, useState } from "react";
+import { PropsWithChildren, useEffect, useState } from "react";
 import About from "./About";
 import Career from "./Career";
 import Contact from "./Contact";
@@ -10,25 +10,24 @@ import WhatIDo from "./WhatIDo";
 import Work from "./Work";
 import setSplitText from "./utils/splitText";
 
+
 const MainContainer = ({ children }: PropsWithChildren) => {
-  const [isDesktopView, setIsDesktopView] = useState(
-    () => window.innerWidth > 1024,
+  const [isDesktopView, setIsDesktopView] = useState<boolean>(
+    window.innerWidth > 1024
   );
-  const splitCleanup = useRef<(() => void) | undefined>();
+
   useEffect(() => {
-    const rebuild = () => {
-      splitCleanup.current?.();
-      splitCleanup.current = setSplitText();
+    const resizeHandler = () => {
+      setSplitText();
       setIsDesktopView(window.innerWidth > 1024);
     };
-    rebuild();
-    window.addEventListener("resize", rebuild);
+    resizeHandler();
+    window.addEventListener("resize", resizeHandler);
     return () => {
-      window.removeEventListener("resize", rebuild);
-      splitCleanup.current?.();
-      splitCleanup.current = undefined;
+      window.removeEventListener("resize", resizeHandler);
     };
-  }, []);
+  }, [isDesktopView]);
+
   return (
     <div className="container-main">
       <a className="skip-link" href="#main-content">
@@ -40,17 +39,18 @@ const MainContainer = ({ children }: PropsWithChildren) => {
       {isDesktopView && children}
       <div id="smooth-wrapper">
         <div id="smooth-content">
-          <main className="container-main" id="main-content" tabIndex={-1}>
+          <div className="container-main" id="main-content" tabIndex={-1}>
             <Landing>{!isDesktopView && children}</Landing>
             <About />
             <WhatIDo />
             <Career />
             <Work />
             <Contact />
-          </main>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
 export default MainContainer;

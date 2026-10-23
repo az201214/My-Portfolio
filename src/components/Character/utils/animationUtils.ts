@@ -3,105 +3,116 @@ import { GLTF } from "three-stdlib";
 import { eyebrowBoneNames, typingBoneNames } from "../../../data/boneData";
 
 const setAnimations = (gltf: GLTF) => {
-  const mixer = new THREE.AnimationMixer(gltf.scene);
-  const timers: number[] = [];
-  const introClip = gltf.animations.find(
-    (clip) => clip.name === "introAnimation",
-  );
-  if (introClip) {
-    const action = mixer.clipAction(introClip);
-    action.clampWhenFinished = true;
-    action.setLoop(THREE.LoopOnce, 1).play();
-  }
-  ["key1", "key2", "key5", "key6"].forEach((name) => {
-    const clip = THREE.AnimationClip.findByName(gltf.animations, name);
-    if (clip) {
-      const action = mixer.clipAction(clip);
-      action.timeScale = 1.2;
-      action.play();
+  const character = gltf.scene;
+  const mixer = new THREE.AnimationMixer(character);
+  if (gltf.animations) {
+    const introClip = gltf.animations.find(
+      (clip) => clip.name === "introAnimation"
+    );
+    const introAction = mixer.clipAction(introClip!);
+    introAction.setLoop(THREE.LoopOnce, 1);
+    introAction.clampWhenFinished = true;
+    introAction.play();
+    const clipNames = ["key1", "key2", "key5", "key6"];
+    clipNames.forEach((name) => {
+      const clip = THREE.AnimationClip.findByName(gltf.animations, name);
+      if (clip) {
+        const action = mixer?.clipAction(clip);
+        action!.play();
+        action!.timeScale = 1.2;
+      } else {
+        console.error(`Animation "${name}" not found`);
+      }
+    });
+    let typingAction: THREE.AnimationAction | null = null;
+    typingAction = createBoneAction(gltf, mixer, "typing", typingBoneNames);
+    if (typingAction) {
+      typingAction.enabled = true;
+      typingAction.play();
+      typingAction.timeScale = 1.2;
     }
-  });
-  const typingAction = createBoneAction(gltf, mixer, "typing", typingBoneNames);
-  if (typingAction) {
-    typingAction.enabled = true;
-    typingAction.timeScale = 1.2;
-    typingAction.play();
   }
   function startIntro() {
-    if (!introClip) return;
-    mixer.clipAction(introClip).reset().setLoop(THREE.LoopOnce, 1).play();
-    const timer = window.setTimeout(() => {
-      const blink = THREE.AnimationClip.findByName(gltf.animations, "Blink");
-      if (blink) mixer.clipAction(blink).fadeIn(0.5).play();
+    const introClip = gltf.animations.find(
+      (clip) => clip.name === "introAnimation"
+    );
+    const introAction = mixer.clipAction(introClip!);
+    introAction.clampWhenFinished = true;
+    introAction.reset().play();
+    setTimeout(() => {
+      const blink = gltf.animations.find((clip) => clip.name === "Blink");
+      mixer.clipAction(blink!).play().fadeIn(0.5);
     }, 2500);
-    timers.push(timer);
   }
-  // Reduced motion: hold the intro's final frame and never advance the mixer.
-  function showStillPose() {
-    if (introClip) {
-      const action = mixer.clipAction(introClip);
-      action.setLoop(THREE.LoopOnce, 1);
-      action.clampWhenFinished = true;
-      action.time = introClip.duration;
-      action.play();
+  function hover(gltf: GLTF, hoverDiv: HTMLDivElement) {
+    const eyeBrowUpAction = createBoneAction(
+      gltf,
+      mixer,
+      "browup",
+      eyebrowBoneNames
+    );
+    let isHovering = false;
+    if (eyeBrowUpAction) {
+      eyeBrowUpAction.setLoop(THREE.LoopOnce, 1);
+      eyeBrowUpAction.clampWhenFinished = true;
+      eyeBrowUpAction.enabled = true;
     }
-    mixer.update(0);
-  }
-  function hover(_gltf: GLTF, hoverDiv: HTMLDivElement) {
-    const eyebrow = createBoneAction(gltf, mixer, "browup", eyebrowBoneNames);
-    let hovering = false;
-    if (eyebrow) {
-      eyebrow.setLoop(THREE.LoopOnce, 1);
-      eyebrow.clampWhenFinished = true;
-    }
-    const onEnter = () => {
-      if (eyebrow && !hovering) {
-        hovering = true;
-        eyebrow.reset().setEffectiveWeight(4).fadeIn(0.5).play();
+    const onHoverFace = () => {
+      if (eyeBrowUpAction && !isHovering) {
+        isHovering = true;
+        eyeBrowUpAction.reset();
+        eyeBrowUpAction.enabled = true;
+        eyeBrowUpAction.setEffectiveWeight(4);
+        eyeBrowUpAction.fadeIn(0.5).play();
       }
     };
-    const onLeave = () => {
-      if (eyebrow && hovering) {
-        hovering = false;
-        eyebrow.fadeOut(0.6);
+    const onLeaveFace = () => {
+      if (eyeBrowUpAction && isHovering) {
+        isHovering = false;
+        eyeBrowUpAction.fadeOut(0.6);
       }
     };
-    hoverDiv.addEventListener("mouseenter", onEnter);
-    hoverDiv.addEventListener("mouseleave", onLeave);
+    if (!hoverDiv) return;
+    hoverDiv.addEventListener("mouseenter", onHoverFace);
+    hoverDiv.addEventListener("mouseleave", onLeaveFace);
     return () => {
-      hoverDiv.removeEventListener("mouseenter", onEnter);
-      hoverDiv.removeEventListener("mouseleave", onLeave);
+      hoverDiv.removeEventListener("mouseenter", onHoverFace);
+      hoverDiv.removeEventListener("mouseleave", onLeaveFace);
     };
   }
-  return {
-    mixer,
-    startIntro,
-    showStillPose,
-    hover,
-    dispose: () => {
-      timers.forEach(window.clearTimeout);
-      mixer.stopAllAction();
-      mixer.uncacheRoot(gltf.scene);
-    },
-  };
+  return { mixer, startIntro, hover };
 };
+
 const createBoneAction = (
   gltf: GLTF,
   mixer: THREE.AnimationMixer,
-  clipName: string,
-  boneNames: string[],
-) => {
-  const clip = THREE.AnimationClip.findByName(gltf.animations, clipName);
-  return clip
-    ? mixer.clipAction(
-        new THREE.AnimationClip(
-          `${clip.name}_filtered`,
-          clip.duration,
-          clip.tracks.filter((track) =>
-            boneNames.some((name) => track.name.includes(name)),
-          ),
-        ),
-      )
-    : null;
+  clip: string,
+  boneNames: string[]
+): THREE.AnimationAction | null => {
+  const AnimationClip = THREE.AnimationClip.findByName(gltf.animations, clip);
+  if (!AnimationClip) {
+    console.error(`Animation "${clip}" not found in GLTF file.`);
+    return null;
+  }
+
+  const filteredClip = filterAnimationTracks(AnimationClip, boneNames);
+
+  return mixer.clipAction(filteredClip);
 };
+
+const filterAnimationTracks = (
+  clip: THREE.AnimationClip,
+  boneNames: string[]
+): THREE.AnimationClip => {
+  const filteredTracks = clip.tracks.filter((track) =>
+    boneNames.some((boneName) => track.name.includes(boneName))
+  );
+
+  return new THREE.AnimationClip(
+    clip.name + "_filtered",
+    clip.duration,
+    filteredTracks
+  );
+};
+
 export default setAnimations;

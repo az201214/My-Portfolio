@@ -411,14 +411,3 @@
     font-size: 18px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .loading-marquee,
-  .loaderGame-in,
-  .loaderGame-ball {
-    animation: none !important;
-  }
-  .loading-wrap,
-  .loading-clicked {
-    transition: none !important;
-  }
-}
